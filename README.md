@@ -11,3 +11,6 @@ mgr repo
 [opencl asus tinker board](https://translate.google.pl/translate?hl=pl&sl=auto&tl=en&u=https%3A%2F%2Fqiita.com%2Fhon_no_mushi%2Fitems%2Fe201890dcc78dc0d88f0&sandbox=1)  
 [shortening processing time with umat opencv](https://translate.google.com/translate?act=url&depth=1&hl=pl&ie=UTF8&prev=_t&rurl=translate.google.pl&sl=auto&sp=nmt4&tl=en&u=https://qiita.com/TaroYamada/items/53074917394e0d58afa9#_reference-8489e84e8e7951f92a46)  
 [opencv gpu python](https://www.quora.com/How-can-I-code-OpenCV-to-use-GPU-using-Python)  
+[opencv t-api](https://www.learnopencv.com/opencv-transparent-api/)  
+[image capture with python](https://stackoverflow.com/questions/11094481/capturing-a-single-image-from-my-webcam-in-java-or-python)  
+[rpi start stop script with button](https://www.raspberrypi.org/forums/viewtopic.php?t=96424)  
