@@ -1,0 +1,2 @@
+# stereoscopy
+mgr repo
