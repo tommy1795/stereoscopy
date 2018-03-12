@@ -14,3 +14,4 @@ mgr repo
 [opencv t-api](https://www.learnopencv.com/opencv-transparent-api/)  
 [image capture with python](https://stackoverflow.com/questions/11094481/capturing-a-single-image-from-my-webcam-in-java-or-python)  
 [rpi start stop script with button](https://www.raspberrypi.org/forums/viewtopic.php?t=96424)  
+[vehicle detection with camera python](https://towardsdatascience.com/vehicle-detection-and-tracking-from-a-front-face-camera-a9b83c842f58)  
