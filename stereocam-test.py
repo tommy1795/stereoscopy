@@ -9,14 +9,17 @@ try:
     if (sys.argv[1] == 'ip'):
         src1 = 'rtsp://192.168.1.10:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
         src2 = 'rtsp://192.168.1.11:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream'
+        folder = 'ipcam'
+    elif (sys.argv[1] == 'usb'):
+        folder = 'usbcam'
+        src1 = sys.argv[2]
+        src2 = sys.argv[3]
     else:
-        src1 = 1
-        src2 = 2
+        exit()
 except:
-    src1 = 0
-    src2 = 1
+    exit()
 
-calibration = np.load('calib-stereo.npz', allow_pickle=False)
+calibration = np.load('%s/calib-stereo.npz' % folder , allow_pickle=False)
 (w, h) = tuple(calibration["imageSize"])
 cam1mtx = calibration["mtx1"]
 cam1dis = calibration["dist1"]
@@ -35,14 +38,14 @@ rightROI = tuple(calibration["roi2"])
 disp2depth = calibration["disp2depth"]
 print (w, h)
 
-rear_cascade = cv.CascadeClassifier('/home/tomasz/opencv-3.3.0/data/haarcascades/haarcascade_frontalface_alt.xml')#/home/tomasz/Documents/OpenCV-Dashcam-Car-Detection/cascade_dir/cascade.xml')
+rear_cascade = cv.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')#cascades/haarcascade_car_rear.xml')
 
-cap1 = WebcamVideoStream(src='rtsp://192.168.1.10:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream')
+cap1 = WebcamVideoStream(src=src1)
 # cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
 # cap1.stream.set(cv.CAP_PROP_FRAME_HEIGHT, h)
 # cap1.stream.set(cv.CAP_PROP_FPS, 10)
 
-cap2 = WebcamVideoStream(src='rtsp://192.168.1.11:554/user=admin_password=tlJwpbo6_channel=1_stream=0.sdp?real_stream')
+cap2 = WebcamVideoStream(src=src2)
 # cap2.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
 # cap2.stream.set(cv.CAP_PROP_FRAME_HEIGHT, h)
 # cap2.stream.set(cv.CAP_PROP_FPS, 10)
@@ -102,11 +105,12 @@ while(True):
         y1 = int(y+(1-k)/2*h)
         y2 = int(y+(1+k)/2*h)
         
-        avgdist = 1./np.amax(disparity[y1:y2,x1:x2])*3600
-        avgdist2 = np.mean(img3d[y1:y2,x1:x2,2])*10
-        text = '%.1f' % avgdist
+        avgdist1 = cam_f * car_w / w #1./np.amax(disparity[y1:y2,x1:x2])*3600
+        avgdist2 = np.mean(img3d[y1:y2,x1:x2,2])*9.35+0.7242
+        avgdist1 = avgdist1 * 0.6794 + 0.16826
+        text1 = '%.1f' % avgdist1
         text2 = '%.1f' % avgdist2
-        cv.putText(fixed1,text,(x1,y1), font, 4,(0,255,0),4,cv.LINE_AA)
+        cv.putText(fixed1,text1,(x1,y1), font, 4,(0,255,0),4,cv.LINE_AA)
         cv.putText(fixed1,text2,(x2,y2), font, 4,(255,0,255),8,cv.LINE_AA)
 
     cv.imshow('depth', disparity/2048.)

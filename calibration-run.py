@@ -1,13 +1,27 @@
 import numpy as np
 import cv2
 import time
+import sys
+
+if not (len(sys.argv) == 4):
+    exit()
+if (sys.argv[1] == 'ip'):
+    folder = 'ipcam'
+elif (sys.argv[1] == 'usb'):
+    folder = 'usbcam'
+else:
+    exit()
+
+#grid parameters
+m = int(sys.argv[2])
+n = int(sys.argv[3])
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 0.0001)
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((5*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:7,0:5].T.reshape(-1,2) #np.mgrid[0:6*24:7j,0:5*24:6j].T.reshape(-1,2)
+objp = np.zeros((n*m,3), np.float32)
+objp[:,:2] = np.mgrid[0:m,0:n].T.reshape(-1,2) #np.mgrid[0:6*24:7j,0:5*24:6j].T.reshape(-1,2)
 squaresize = 0.0393
 objp *= squaresize
 
@@ -20,16 +34,16 @@ imgno = 1
 nimgs = 20
 
 while(imgno<=nimgs):
-    path1 = '/home/tomasz/img-db/calib-test/cam1/img%d.jpg' % imgno
-    path2 = '/home/tomasz/img-db/calib-test/cam2/img%d.jpg' % imgno
+    path1 = '%s/cal1/img%d.jpg' % (folder, imgno)
+    path2 = '%s/cal2/img%d.jpg' % (folder, imgno)
     img1 = cv2.imread(path1, 1)
     img2 = cv2.imread(path2, 1)
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     
     # Find the chess board corners
-    ret1, corners1 = cv2.findChessboardCorners(gray1, (7,5),None)
-    ret2, corners2 = cv2.findChessboardCorners(gray2, (7,5),None)
+    ret1, corners1 = cv2.findChessboardCorners(gray1, (m,n),None)
+    ret2, corners2 = cv2.findChessboardCorners(gray2, (m,n),None)
     
     # If found, add object points, image points (after refining them)
     if ret1 == True and ret2 == True:
@@ -41,8 +55,8 @@ while(imgno<=nimgs):
         imgpoints2.append(corners2)
         
         # Draw and display the corners
-        cv2.drawChessboardCorners(img1, (7,6), corners21,ret1)
-        cv2.drawChessboardCorners(img2, (7,6), corners22,ret2)
+        cv2.drawChessboardCorners(img1, (m,n), corners21,ret1)
+        cv2.drawChessboardCorners(img2, (m,n), corners22,ret2)
         cv2.imshow('img1', img1)
         cv2.waitKey(100)
         cv2.imshow('img2', img2)
@@ -101,7 +115,7 @@ mapx2, mapy2 = cv2.initUndistortRectifyMap(mtx2, dist2, rect2, proj2, gray1.shap
 
 # Save the calibration parameters
 np.savez_compressed(
-    'calib-stereo.npz', imageSize=gray1.shape[::-1],
+    '%s/calib-stereo.npz' % folder, imageSize=gray1.shape[::-1],
     mtx1=mtx1, dist1=dist1, newmtx1=newmtx1, proj1=proj1, mapx1=mapx1, mapy1=mapy1, roi1=roi1,
     mtx2=mtx2, dist2=dist2, newmtx2=newmtx2, proj2=proj2, mapx2=mapx2, mapy2=mapy2, roi2=roi2,
     disp2depth=disp2depth)
