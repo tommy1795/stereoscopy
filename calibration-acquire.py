@@ -24,8 +24,8 @@ elif (sys.argv[2] == 'usb'):
     if not (len(sys.argv) > 4):
         exit()
     else:
-        src1 = sys.argv[3]
-        src2 = sys.argv[4]
+        src1 = int(sys.argv[3])
+        src2 = int(sys.argv[4])
         folder = 'usbcam'
 else:
     exit()
@@ -33,12 +33,16 @@ else:
 counter = 1
 
 cap1 = WebcamVideoStream(src=src1)
-# cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-# cap1.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-
 cap2 = WebcamVideoStream(src=src2)
-# cap2.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-# cap2.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+
+try:
+    if (sys.argv[2] == 'usb'):
+        cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+        cap1.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+        cap2.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+        cap2.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+except:
+    pass
 
 cap1.start()
 cap2.start()
