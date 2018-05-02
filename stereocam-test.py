@@ -1,4 +1,5 @@
 from imutils.video import WebcamVideoStream
+import stereocamfcn as fcns
 import numpy as np
 import cv2 as cv
 import time
@@ -19,6 +20,24 @@ try:
 except:
     exit()
 
+chsbd_w = 0.2355
+chsbd_p = 578
+chsbd_d = 0.88
+cam_f = chsbd_p * chsbd_d / chsbd_w
+car_w = 1.8
+
+m1 = 3333.4004557751
+b1 = -2.34340798146414
+m2 = 10.9119480056585
+b2 = 3.37950280275768
+
+pdist1 = 50.
+pdist2 = 50.
+velo1 = 0.
+velo2 = 0.
+
+
+'''
 calibration = np.load('%s/calib-stereo.npz' % folder , allow_pickle=False)
 (w, h) = tuple(calibration["imageSize"])
 cam1mtx = calibration["mtx1"]
@@ -36,9 +55,12 @@ cam2mapx = calibration["mapx2"]
 cam2mapy = calibration["mapy2"]
 rightROI = tuple(calibration["roi2"])
 disp2depth = calibration["disp2depth"]
+'''
+cam1mapx, cam1mapy, cam2mapx, cam2mapy, disp2depth = fcns.readcalibration('%s/calib-stereo.npz' % folder)
+
 print (w, h)
 
-rear_cascade = cv.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')#cascades/haarcascade_car_rear.xml')
+rear_cascade = cv.CascadeClassifier('cascades/haarcascade_car_rear.xml')#frontalface_alt.xml')
 
 cap1 = WebcamVideoStream(src=src1)
 # cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
@@ -52,7 +74,11 @@ cap2 = WebcamVideoStream(src=src2)
 
 cap1.start()
 cap2.start()
-time.sleep(4)
+time.sleep(2)
+
+wd = fcns.FCWwatchdog().start()
+
+start_time = time.time()
 
 while(True):
     frame1 = cap1.read()
@@ -65,11 +91,11 @@ while(True):
     gray2 = cv.cvtColor(fixed2, cv.COLOR_BGR2GRAY)
     
     stereo = cv.StereoBM_create()
-    stereo.setMinDisparity(4)
-    stereo.setNumDisparities(128)
-    stereo.setBlockSize(25)
-    stereo.setSpeckleRange(16)
-    stereo.setSpeckleWindowSize(45)
+    stereo.setMinDisparity(4) # 4
+    stereo.setNumDisparities(32) # 128
+    stereo.setBlockSize(21)
+    stereo.setSpeckleRange(16) # 16
+    stereo.setSpeckleWindowSize(45) # 45
 
 
     disparity = stereo.compute(gray1,gray2).astype(np.float32)
@@ -83,33 +109,47 @@ while(True):
 
     cars = rear_cascade.detectMultiScale(gray1, 1.2, 5)
     
+    dist1 = 50.
+    dist2 = 50.    
+
     for (x,y,w,h) in cars:
         cv.rectangle(fixed1,(x,y),(x+w,y+h),(255,0,0),2)
         # calculate coordinates for averaging
         k = .7 #coefficient
+        '''        
         x1 = int(x+(1-k)/2*w)
         x2 = int(x+(1+k)/2*w)
         y1 = int(y+(1-k)/2*h)
         y2 = int(y+(1+k)/2*h)
-        
-        avgdist1 = cam_f * car_w / w #1./np.amax(disparity[y1:y2,x1:x2])*3600
-        avgdist2 = np.amin(img3d[y1:y2,x1:x2,2])*9.35+0.7242
-        avgdist1 = avgdist1 * 0.6794 + 0.16826
-        text1 = '%.1f' % avgdist1
-        text2 = '%.1f' % avgdist2
-        cv.putText(fixed1,text1,(x1,y1), font, 4,(0,255,0),4,cv.LINE_AA)
-        cv.putText(fixed1,text2,(x2,y2), font, 4,(255,0,255),8,cv.LINE_AA)
+        '''
+        x1, x2, y1, y2 = fcns.img_subregion(x, y, w, h, k)
+        # calculate the distance using two methods
+        avgdist1 = m1 / np.float64(w) + b1
+        avgdist2 = np.median(img3d[y1:y2,x1:x2,2]) * m2 + b2
 
-    cv.imshow('depth', disparity/2048.)
+        # dim case, closest found using proportions is probably a car
+        if (avgdist1 < dist1):
+            dist1 = avgdist1
+            dist2 = avgdist2
+
+        text1 = '%d' % w
+        text2 = '%.4f' % avgdist2
+        cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
+        cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
+    # TODO
+    velo1 = [] 
+
+    cv.imshow('depth', disparity/512.)
     
     cv.imshow('fixed1', fixed1)
-    cv.imshow('fixed2', fixed2)
+    #cv.imshow('fixed2', fixed2)
 
-    if cv.waitKey(1) & 0xFF == ord('q'):
+    if cv.waitKey(1) & 0xFF == ord('q'):        
         break
 
 # print(img3d.shape)
 cap1.stop()
 cap2.stop()
+wd.stop()
 
 cv.destroyAllWindows()
