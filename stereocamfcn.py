@@ -24,7 +24,7 @@ class FCWwatchdog:
                 self.stopped = True        
                 break
     def recalc(self, velocity=0.0, z=50.0):
-        if (velocity < 0):
+        if (velocity < -5.0/3.6):
             deceleration = velocity * velocity / z / 2.0
             if (deceleration > 0.5):
                 self.image = self.warning
