@@ -105,15 +105,17 @@ while(True):
     
     fixed1 = cv.remap(frame1, cam1mapx, cam1mapy, cv.INTER_LINEAR)
     fixed2 = cv.remap(frame2, cam2mapx, cam2mapy, cv.INTER_LINEAR)
-    try:
-        gray1 = cv.cvtColor(fixed1, cv.COLOR_BGR2GRAY)
-        gray2 = cv.cvtColor(fixed2, cv.COLOR_BGR2GRAY)
-    except:
-        gray1 = cv.imread('misc/blank.jpg', cv.COLOR_BGR2GRAY)
-        gray1 = cv.imread('misc/blank.jpg', cv.COLOR_BGR2GRAY)
+    gray1 = cv.cvtColor(fixed1, cv.COLOR_BGR2GRAY)
+    gray2 = cv.cvtColor(fixed2, cv.COLOR_BGR2GRAY)
+    #except:
+        #gray1 = cv.imread('misc/blank.jpg', 1)
+        #gray2 = cv.imread('misc/blank.jpg', 1)
+        #gray1 = cv.cvtColor(gray1, cv.COLOR_BGR2GRAY)
+        #gray2 = cv.cvtColor(gray2, cv.COLOR_BGR2GRAY)
+        #pass
     
     stereo = cv.StereoBM_create()
-    stereo.setMinDisparity(4) # 4
+    stereo.setMinDisparity(2) # 4
     stereo.setNumDisparities(32) # 128
     stereo.setBlockSize(21)
     stereo.setSpeckleRange(16) # 16
