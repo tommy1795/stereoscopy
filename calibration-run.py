@@ -34,8 +34,8 @@ imgno = 1
 nimgs = 20
 
 while(imgno<=nimgs):
-    path1 = '%s/cal1/img%d.jpg' % (folder, imgno)
-    path2 = '%s/cal2/img%d.jpg' % (folder, imgno)
+    path1 = '%s/cam1/img%d.jpg' % (folder, imgno)
+    path2 = '%s/cam2/img%d.jpg' % (folder, imgno)
     img1 = cv2.imread(path1, 1)
     img2 = cv2.imread(path2, 1)
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
@@ -97,7 +97,7 @@ newmtx2, roi2 = cv2.getOptimalNewCameraMatrix(mtx2, dist2, gray1.shape[::-1], 1)
     mtx1, dist1, mtx2, dist2,
     gray1.shape[::-1], rotmtx, transvec,
     None, None, None, None, None,
-    0, 0.5)
+    cv2.CALIB_ZERO_DISPARITY , 0.5)
 
 # ip1 = np.asarray(imgpoints1)
 # ip1 = np.reshape(ip1, (ip1.shape[0]*ip1.shape[1],ip1.shape[3]))

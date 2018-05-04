@@ -29,10 +29,12 @@ car_w = 1.8
 '''
 
 # coefficients for raw linear distance calculation
-m1 = 3333.4004557751
-b1 = -2.34340798146414
-m2 = 10.9119480056585
-b2 = 3.37950280275768
+m1 = 2674.47615612931
+b1 = 0.626967681334889
+m2 = -2.40135001577826
+b2 = 17.8185160919775
+c2 = -2.07837059967143
+
 
 # Kalman filter initialization
 dist = 50.0
@@ -40,11 +42,14 @@ dist_pri = 50.0
 dist_post = 50.0
 P_pri = 1.0
 P_post = 1.0
-Q = 10e-4
+Q = 10e-3
 def var_stereo(dist):
-    var = .00625715 * dist * dist + 0.2544023 * dist
+    #var = .00625715 * dist * dist + 0.2544023 * dist
+    var = 0.024303279394464 * dist + -0.114193003893593
+    if (var < 0.052114226006177):
+        var = 0.052114226006177
     return var
-var_prop = 1.32312
+var_prop = 2.24022762915913
 A = 1.0
 C = np.array([[1],[1]])
 velo = 0.0
@@ -116,7 +121,7 @@ while(True):
     
     stereo = cv.StereoBM_create()
     stereo.setMinDisparity(2) # 4
-    stereo.setNumDisparities(32) # 128
+    stereo.setNumDisparities(64) # 128
     stereo.setBlockSize(21)
     stereo.setSpeckleRange(16) # 16
     stereo.setSpeckleWindowSize(45) # 45
@@ -140,28 +145,24 @@ while(True):
         cv.rectangle(fixed1,(x,y),(x+w,y+h),(255,0,0),2)
         # calculate coordinates for averaging
         k = .7 #coefficient
-        ''' not needed if subregion works
-        x1 = int(x+(1-k)/2*w)
-        x2 = int(x+(1+k)/2*w)
-        y1 = int(y+(1-k)/2*h)
-        y2 = int(y+(1+k)/2*h)
-        '''
+        
         x1, x2, y1, y2 = fcns.img_subregion(x, y, w, h, k)
         # calculate the distance using two methods
         avgdist1 = m1 / np.float64(w) + b1
-        avgdist2 = np.amin(img3d[y1:y2,x1:x2,2]) * m2 + b2
+        avgdist2 = np.amin(img3d[y1:y2,x1:x2,2])
+        avgdist2 = avgdist2 * avgdist2 * m2 + avgdist2 * b2 + c2
 
         # dim case, closest found using proportions is probably a car
         if (avgdist1 < dist1):
             dist1 = avgdist1
             dist2 = avgdist2
 
-        ''' distances for debugging
-        text1 = '%d' % w
-        text2 = '%.4f' % avgdist2
-        cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
-        cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
-        '''
+        #distances for debugging
+        #text1 = '%d' % w
+        #text2 = '%.4f' % np.amin(img3d[y1:y2,x1:x2,2])
+        #cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
+        #cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
+        
 
     cv.putText(fixed1,'%.1f' % dist1,(50,800), font, 2,(0,255,0),8,cv.LINE_AA)
     cv.putText(fixed1,'%.1f' % dist2,(50,900), font, 2,(255,0,255),8,cv.LINE_AA)
@@ -184,9 +185,9 @@ while(True):
     velo = (dist_post - velo)/(time.time() - start_time)
     start_time = time.time()
     #wd.recalc(velo, dist_post)
-    if (velo<-5.0/3.6):
-        acc = velo*velo/dist_post/2.0
-        if (acc > 0.5):
+    if (velo<-5.0/3.6 and dist_post > 5.5):
+        acc = velo*velo/(dist_post-5.0)/2.0 # added one car margin
+        if (acc > 1): #TODO changed acceleration to 4 m/s2
             image = warning
         else:
             image = caution
@@ -199,7 +200,7 @@ while(True):
     cv.putText(fixed1,'%.1f' % acc,(50,500), font, 2,(0,255,255),8,cv.LINE_AA)
 
     cv.imshow('status', image)    
-    cv.imshow('depth', disparity/512.)
+    cv.imshow('depth', disparity/1024.)
     
     cv.imshow('fixed1', fixed1)
     #cv.imshow('fixed2', fixed2)
