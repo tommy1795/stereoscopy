@@ -29,30 +29,33 @@ car_w = 1.8
 '''
 
 # coefficients for raw linear distance calculation
-m1 = 2674.47615612931
-b1 = 0.626967681334889
-m2 = -2.40135001577826
-b2 = 17.8185160919775
-c2 = -2.07837059967143
+m1 = np.float64(2674.47615612931)
+b1 = np.float64(0.626967681334889)
+m2 = np.float64(-2.40135001577826)
+b2 = np.float64(17.8185160919775)
+c2 = np.float64(-2.07837059967143)
 
 
 # Kalman filter initialization
-dist = 50.0
-dist_pri = 50.0
-dist_post = 50.0
-P_pri = 1.0
-P_post = 1.0
-Q = 10e-3
+dist = np.float64(50.0)
+dist_pri = np.float64(50.0)
+dist_post = np.float64(50.0)
+P_pri = np.float64(1.0)
+P_post = np.float64(1.0)
+Q = np.float64(10e-3)
 def var_stereo(dist):
     #var = .00625715 * dist * dist + 0.2544023 * dist
-    var = 0.024303279394464 * dist + -0.114193003893593
+    var = np.float64(0.024303279394464) * dist + np.float64(-0.114193003893593)
     if (var < 0.052114226006177):
-        var = 0.052114226006177
+        var = np.float64(0.052114226006177)
     return var
-var_prop = 2.24022762915913
-A = 1.0
+var_prop = np.float64(2.24022762915913)
+A = np.float64(1.0)
 C = np.array([[1],[1]])
-velo = 0.0
+velo = np.float64(0.0)
+
+dist1 = np.float64(100.0)
+dist2 = np.float64(100.0)
 
 normal = np.zeros((512,512))
 caution = cv.imread('misc/caution.jpg', 1)
@@ -84,7 +87,7 @@ cam1mapx, cam1mapy, cam2mapx, cam2mapy, disp2depth = fcns.readcalibration('%s/ca
 
 # print (w, h)
 
-rear_cascade = cv.CascadeClassifier('cascades/haarcascade_car_rear.xml')#frontalface_alt.xml')
+rear_cascade = cv.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')#frontalface_alt.xml')
 
 cap1 = WebcamVideoStream(src=src1)
 # cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
@@ -137,32 +140,54 @@ while(True):
     img3d = cv.reprojectImageTo3D(disparity, disp2depth).astype(np.float32)
 
     cars = rear_cascade.detectMultiScale(gray1, 1.2, 5)
-    
-    dist1 = 100.
-    dist2 = 100.    
+
+    # variables to store the minimum distances from the image processing
+    temp1 = np.float64(100.0)
+    temp2 = np.float64(100.0)
+    no_car_found = np.bool_(True)
 
     for (x,y,w,h) in cars:
-        cv.rectangle(fixed1,(x,y),(x+w,y+h),(255,0,0),2)
-        # calculate coordinates for averaging
-        k = .7 #coefficient
-        
-        x1, x2, y1, y2 = fcns.img_subregion(x, y, w, h, k)
-        # calculate the distance using two methods
+        # calculate distance by proportion 
         avgdist1 = m1 / np.float64(w) + b1
+
+        # calculate distance with disparity
+        k = .65 #coefficient        
+        x1, x2, y1, y2 = fcns.img_subregion(x, y, w, h, k)
         avgdist2 = np.amin(img3d[y1:y2,x1:x2,2])
         avgdist2 = avgdist2 * avgdist2 * m2 + avgdist2 * b2 + c2
 
-        # dim case, closest found using proportions is probably a car
-        if (avgdist1 < dist1):
-            dist1 = avgdist1
-            dist2 = avgdist2
-
-        #distances for debugging
-        #text1 = '%d' % w
-        #text2 = '%.4f' % np.amin(img3d[y1:y2,x1:x2,2])
-        #cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
-        #cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
+        # check if the data is consistent
+        if (np.abs((avgdist1-avgdist2)/avgdist1)>0.5 and np.abs((avgdist1-avgdist2)/avgdist2)>0.5):
+            continue
+        elif (avgdist1 < 0.0 or avgdist2 < 0.0):
+            continue
+        else:
+            # draw the rectangle for processed object and stereoscopy subregion
+            cv.rectangle(fixed1,(x,y),(x+w,y+h),(255,0,0),2)
+            cv.rectangle(fixed1,(x1,y1),(x2,y2),(0,255,0),2)
         
+            # get the smallest
+            if (avgdist2 < temp2):
+                temp1 = avgdist1
+                temp2 = avgdist2
+                no_car_found = False
+
+            ''' uncomment for calibration
+            #text1 = '%d' % w
+            #text2 = '%.4f' % np.amin(img3d[y1:y2,x1:x2,2])
+            #cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
+            #cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
+            '''
+    
+    # interpret the measured values
+    if (no_car_found): #if there was no car recognition
+        if (dist1 < 99.0 and dist2 < 99.0): # if the full ahead space is not free
+            dist1 += 1.0 # assume that there is nothing ahead and gradually increase the clear distance
+            dist2 += 1.0
+    else: #if there was car found, update the measurements for the Kalman
+        dist1 = temp1
+        dist2 = temp2
+    
 
     cv.putText(fixed1,'%.1f' % dist1,(50,800), font, 2,(0,255,0),8,cv.LINE_AA)
     cv.putText(fixed1,'%.1f' % dist2,(50,900), font, 2,(255,0,255),8,cv.LINE_AA)
