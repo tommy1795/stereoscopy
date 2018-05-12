@@ -154,8 +154,9 @@ while(True):
     font = cv.FONT_HERSHEY_SIMPLEX
     
     img3d = cv.reprojectImageTo3D(disparity, disp2depth).astype(np.float32)
-
-    cars = rear_cascade.detectMultiScale(gray1, 1.2, 5)
+    
+    gray_small = gray1[::2,::2]
+    cars = rear_cascade.detectMultiScale(gray_small, 1.2, 5)
 
     # variables to store the minimum distances from the image processing
     temp1 = np.float64(100.0)
@@ -163,6 +164,11 @@ while(True):
     no_car_found = np.bool_(True)
 
     for (x,y,w,h) in cars:
+        # detection is 2x smaller picture, revert coordinates x2
+        x *= 2
+        y *= 2
+        w *= 2
+        h *= 2
         # calculate distance by proportion 
         avgdist1 = m1 / np.float64(w) + b1
 
@@ -241,7 +247,7 @@ while(True):
     cv.putText(fixed1,'%.1f m/s2' % acc,(50,500), font, 2,(0,255,255),8,cv.LINE_AA)
 
     cv.imshow('status', image)    
-    cv.imshow('depth', disparity/1024.)
+    cv.imshow('depth', disparity[::2,::2]/1024.)
     
     cv.imshow('fixed1', fixed1)
     #cv.imshow('fixed2', fixed2)
