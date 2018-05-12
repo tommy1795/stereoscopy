@@ -29,11 +29,18 @@ car_w = 1.8
 '''
 
 # coefficients for raw linear distance calculation
-m1 = np.float64(2674.47615612931)
-b1 = np.float64(0.626967681334889)
-m2 = np.float64(-2.40135001577826)
-b2 = np.float64(17.8185160919775)
-c2 = np.float64(-2.07837059967143)
+if (sys.argv[1] == 'ip'):
+    m1 = np.float64(2674.47615612931)
+    b1 = np.float64(0.626967681334889)
+    m2 = np.float64(-2.40135001577826)
+    b2 = np.float64(17.8185160919775)
+    c2 = np.float64(-2.07837059967143)
+else:
+    m1 = np.float64(2167.155186688)
+    b1 = np.float64(-5.7464734246)
+    m2 = np.float64(37.4122794202)
+    b2 = np.float64(32.1023862723)
+    c2 = np.float64(-7.5484309991)
 
 
 # Kalman filter initialization
@@ -87,7 +94,7 @@ cam1mapx, cam1mapy, cam2mapx, cam2mapy, disp2depth = fcns.readcalibration('%s/ca
 
 # print (w, h)
 
-rear_cascade = cv.CascadeClassifier('cascades/haarcascade_frontalface_alt.xml')#frontalface_alt.xml')
+rear_cascade = cv.CascadeClassifier('cascades/haarcascade_car_rear.xml')#frontalface_alt.xml')
 
 cap1 = WebcamVideoStream(src=src1)
 # cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
@@ -98,6 +105,15 @@ cap2 = WebcamVideoStream(src=src2)
 # cap2.stream.set(cv.CAP_PROP_FRAME_WIDTH, w)
 # cap2.stream.set(cv.CAP_PROP_FRAME_HEIGHT, h)
 # cap2.stream.set(cv.CAP_PROP_FPS, 10)
+
+try:
+    if (sys.argv[2] == 'usb'):
+        cap1.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+        cap1.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+        cap2.stream.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+        cap2.stream.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+except:
+    pass
 
 cap1.start()
 cap2.start()
@@ -157,7 +173,7 @@ while(True):
         avgdist2 = avgdist2 * avgdist2 * m2 + avgdist2 * b2 + c2
 
         # check if the data is consistent
-        if (np.abs((avgdist1-avgdist2)/avgdist1)>0.5 and np.abs((avgdist1-avgdist2)/avgdist2)>0.5):
+        if (np.abs((avgdist1-avgdist2)/avgdist1)>0.75 and np.abs((avgdist1-avgdist2)/avgdist2)>0.75):
             continue
         elif (avgdist1 < 0.0 or avgdist2 < 0.0):
             continue
@@ -172,11 +188,11 @@ while(True):
                 temp2 = avgdist2
                 no_car_found = False
 
-            ''' uncomment for calibration
-            #text1 = '%d' % w
-            #text2 = '%.4f' % np.amin(img3d[y1:y2,x1:x2,2])
-            #cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
-            #cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),8,cv.LINE_AA)
+            '''#uncomment for calibration
+            text1 = '%d' % w
+            text2 = '%.4f' % np.amin(img3d[y1:y2,x1:x2,2])
+            cv.putText(fixed1,text1,(x1,y1), font, 2,(0,255,0),4,cv.LINE_AA)
+            cv.putText(fixed1,text2,(x2,y2), font, 2,(255,0,255),4,cv.LINE_AA)
             '''
     
     # interpret the measured values
@@ -189,8 +205,8 @@ while(True):
         dist2 = temp2
     
 
-    cv.putText(fixed1,'%.1f' % dist1,(50,800), font, 2,(0,255,0),8,cv.LINE_AA)
-    cv.putText(fixed1,'%.1f' % dist2,(50,900), font, 2,(255,0,255),8,cv.LINE_AA)
+    cv.putText(fixed1,'%.1f m pr' % dist1,(50,800), font, 2,(0,255,0),8,cv.LINE_AA)
+    cv.putText(fixed1,'%.1f m st' % dist2,(50,900), font, 2,(255,0,255),8,cv.LINE_AA)
 
     # Kalman filter prediction
     dist_pri = A * dist_post
@@ -220,9 +236,9 @@ while(True):
         image = normal
         acc = 0.0
 
-    cv.putText(fixed1,'%.1f' % dist_post,(50,700), font, 2,(255,0,0),8,cv.LINE_AA)
-    cv.putText(fixed1,'%.1f' % velo,(50,600), font, 2,(255,255,0),8,cv.LINE_AA)
-    cv.putText(fixed1,'%.1f' % acc,(50,500), font, 2,(0,255,255),8,cv.LINE_AA)
+    cv.putText(fixed1,'%.1f m' % dist_post,(50,700), font, 2,(255,0,0),8,cv.LINE_AA)
+    cv.putText(fixed1,'%.1f m/s' % velo,(50,600), font, 2,(255,255,0),8,cv.LINE_AA)
+    cv.putText(fixed1,'%.1f m/s2' % acc,(50,500), font, 2,(0,255,255),8,cv.LINE_AA)
 
     cv.imshow('status', image)    
     cv.imshow('depth', disparity/1024.)
