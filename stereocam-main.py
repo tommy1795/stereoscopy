@@ -49,7 +49,7 @@ rear_cascade = cv.CascadeClassifier('cascades/haarcascade_car_rear.xml')
 stereo = cv.StereoBM_create()
 stereo.setMinDisparity(2) # 4
 stereo.setNumDisparities(64) # 128
-stereo.setBlockSize(21)
+stereo.setBlockSize(33)
 stereo.setSpeckleRange(16) # 16
 stereo.setSpeckleWindowSize(45) # 45
 
@@ -59,7 +59,7 @@ dist_pri = np.float64(50.0)
 dist_post = np.float64(50.0)
 P_pri = np.float64(1.0)
 P_post = np.float64(1.0)
-Q = np.float64(10e-3)
+Q = np.float64(10e-4)
 def var_stereo(dist):
     #var = .00625715 * dist * dist + 0.2544023 * dist
     var = np.float64(0.024303279394464) * dist + np.float64(-0.114193003893593)
@@ -71,8 +71,8 @@ A = np.float64(1.0)
 C = np.array([[1],[1]])
 velo = np.float64(0.0)
 
-dist1 = np.float64(100.0)
-dist2 = np.float64(100.0)
+dist1 = np.float64(35.0)
+dist2 = np.float64(35.0)
 
 # read status images
 normal = np.zeros((512,512))
@@ -129,7 +129,7 @@ while(True):
     
     # resize the image for object detection & apply the classifier
     gray_small = gray1[::2,::2]
-    cars = rear_cascade.detectMultiScale(gray_small, 1.2, 5)
+    cars = rear_cascade.detectMultiScale(gray_small, 1.1, 5)
 
     # variables to store the minimum distances from the image processing
     temp1 = np.float64(100.0)
@@ -193,7 +193,7 @@ while(True):
     velo = dist_post
 
     # Kalman filter update
-    R = np.array([[var_prop, 10e-5], [10e-5, var_stereo(dist_pri)]])
+    R = np.array([[var_prop, 10e-5], [10e-5, var_stereo(dist2)]])
     S = np.dot(P_pri*C,C.transpose()) + R
     K = np.dot(P_pri*C.transpose(),np.linalg.inv(S))
     e = np.array([[dist1],[dist2]]) - dist_pri*C
